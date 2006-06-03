@@ -1,0 +1,14 @@
+RM=rm -f
+
+all: vnccrack
+
+vnccrack: vnccrack.cpp
+	@CXX@ @CXXFLAGS@ vnccrack.cpp @LDFLAGS@ @LIBS@ -o vnccrack
+
+clean:
+	$(RM) vnccrack
+	$(RM) config.status config.log
+	$(RM) -r autom4te*.cache
+
+distclean: clean
+	$(RM) Makefile

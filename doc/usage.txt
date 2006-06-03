@@ -1,0 +1,13 @@
+$ ./vnccrack [wordlist] [crpairs]
+
+where [wordlist] is a file containing potential passwords, and [crpairs] is a
+file containing one or more challenge-response pairs, as 32 byte hex strings
+separated by a space, like so:
+
+9EB777429696A68BCF161D0DD7D30DD4 6231F933D44AB5BF1E10A7A8A63AAED6
+4BCD59BEA3660B1117A5AAF51882BD4B 7D969B71EC0D12B0A616667B35B1F592
+6B2D76103F9F7EC4589B4FBE60A6721B CFB73EB526FA87FDF65BF1DDF99B924D
+[...]
+
+When VNCcrack finds a password, it will tell you which C/R pair it corresponds
+to, with the first line being C/R pair number 1.

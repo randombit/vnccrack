@@ -1,0 +1,21 @@
+
+I suppose someone might wonder why on earth I'm using OpenSSL when I have
+written my own crypto library (Botan; http://botan.randombit.net), which is
+obviously much better than OpenSSL. ^_^
+
+First, OpenSSL is more likely to be found on the average system. For similar
+reasons, I wrote it in C instead of C++, even though C++ would have been quite
+a bit easier. Actually, I've since rewritten the whole thing in (really ugly)
+C++, but that's besides the point.
+
+Secondly, and more importantly, OpenSSL has damn near the fastest DES
+implementation around (everything from well-tuned C to asm for lots of
+systems). Since the cracking speed depends 95% on how fast we can run DES, this
+is important. Botan's DES code is fast, but not nearly as fast as OpenSSL's;
+and that's ignoring the (small but noticeable) performance hit for C++.
+
+Anyway, there wouldn't be much benefit from using a different library, even if
+it was just as fast as OpenSSL. Besides a few pieces of brain-damage in the DES
+interface, we wouldn't get much benefit. There are less than 10 lines of code
+that actually deal with OpenSSL in any way, the rest is generic data structures
+stuff.

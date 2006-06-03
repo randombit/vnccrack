@@ -1,0 +1,16 @@
+
+* 0.9.1, October 31, 2004
+ - Fixed a stupid error that made the checks always fail
+
+* 0.9, December 9, 2003
+ - Rewrote it in ugly C++
+ - Updated to use new DES interface in OpenSSL 0.9.7
+ - Autoconfiscated
+
+* 0.8, May 30, 2003
+ - Use OpenSSL instead of VNC's modified DES library
+ - Support for cracking multiple passwords at once
+ - GPLed
+
+* 0.7, March 5, 2003
+ - First public release
