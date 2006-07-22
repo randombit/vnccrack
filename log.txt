@@ -1,6 +1,6 @@
 
 * 1.0.0, July 22, 2006
- - Largely rewrite in much cleaner C++
+ - Largely rewritten in much cleaner C++
  - Skip words that have the same leading 8 chars as a word already checked
  - Make file reading and error reporting much more reliable
  - Allow comments in the challenge/response file
