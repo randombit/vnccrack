@@ -8,6 +8,7 @@
 #include <string>
 #include <fstream>
 #include <exception>
+#include <vector>
 
 #include <openssl/des.h>
 
@@ -43,8 +44,19 @@ class ChallengeResponse
 
       ChallengeResponse(const std::string&);
    private:
-      unsigned char challenge[16], response[16];
+      std::vector<unsigned char> challenge, response;
       std::string solution;
+   };
+
+class ChallengeResponses
+   {
+   public:
+      int count() const;
+
+      void test(const TrialPassword&);
+      ChallengeResponses(const std::string&);
+   private:
+      std::vector<ChallengeResponse> crpairs;
    };
 
 class Wordlist

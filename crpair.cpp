@@ -4,7 +4,8 @@
 
 #include "vnccrack.h"
 #include <cctype>
-#include <cstring>
+#include <fstream>
+#include <iostream>
 
 namespace {
 
@@ -18,14 +19,21 @@ unsigned char get_nibble(char hex)
       return (hex - '0'); // digit
    }
 
-void hex_decode(unsigned char out[16], const char* in)
+std::vector<unsigned char> hex_decode(const char* in, int in_len)
    {
-   for(int j = 0; j != 32; j += 2)
+   if(in_len % 2 != 0)
+      throw Exception("Hex strings must have even length");
+
+   std::vector<unsigned char> out(in_len / 2);
+
+   for(int j = 0; j != in_len; j += 2)
       {
       unsigned char nibble1 = get_nibble(in[j]);
       unsigned char nibble2 = get_nibble(in[j+1]);
       out[j/2] = (nibble1 << 4) | nibble2;
       }
+
+   return out;
    }
 
 }
@@ -52,12 +60,15 @@ void ChallengeResponse::test(const TrialPassword& pass)
    for(int j = 0; j != 16 && matched; j += 8)
       {
       unsigned char temp[8];
-      std::memcpy(temp, challenge + j, 8);
+
+      for(int k = 0; k != 8; k++)
+         temp[k] = challenge[j+k];
 
       DES_ecb_encrypt(&temp, &temp, &des_ks, DES_ENCRYPT);      
 
-      if(std::memcmp(temp, response + j, 8))
-         matched = false;
+      for(int k = 0; k != 8; k++)
+         if(temp[k] != response[j+k])
+            matched = false;
       }
 
    if(matched)
@@ -76,6 +87,45 @@ ChallengeResponse::ChallengeResponse(const std::string& line)
 
    const char* hex_str = hex.c_str();
 
-   hex_decode(challenge, hex_str);
-   hex_decode(response, hex_str + 32);
+   challenge = hex_decode(hex_str, 32);
+   response = hex_decode(hex_str + 32, 32);
+   }
+
+void ChallengeResponses::test(const TrialPassword& pass)
+   {
+   for(std::size_t j = 0; j != crpairs.size(); j++)
+      {
+      if(crpairs[j].is_solved())
+         continue;
+
+      crpairs[j].test(pass);
+
+      if(crpairs[j].is_solved())
+         std::cout << "FOUND: C/R pair " << j+1 << " password="
+                   << pass.password() << std::endl;
+      }
+   }
+
+ChallengeResponses::ChallengeResponses(const std::string& filename)
+   {
+   std::ifstream in(filename.c_str());
+   if(!in)
+      throw Exception("Couldn't open C/R pair file " + filename);
+
+   while(in.good())
+      {
+      std::string line;
+      std::getline(in, line);
+
+      if(line == "")
+         continue;
+
+      ChallengeResponse cr(line);
+      crpairs.push_back(cr);
+      }
+   }
+
+int ChallengeResponses::count() const
+   {
+   return crpairs.size();
    }
