@@ -2,8 +2,16 @@ RM=rm -f
 
 all: vnccrack
 
-vnccrack: vnccrack.cpp
-	@CXX@ @CXXFLAGS@ vnccrack.cpp @LDFLAGS@ @LIBS@ -o vnccrack
+OBJS=wordlist.o vnccrack.o
+
+vnccrack: $(OBJS)
+	@CXX@ $(OBJS) @LDFLAGS@ @LIBS@ -o vnccrack
+
+vnccrack.o: vnccrack.cpp vnccrack.h
+	@CXX@ @CXXFLAGS@ -c $< -o $@
+
+wordlist.o: wordlist.cpp vnccrack.h
+	@CXX@ @CXXFLAGS@ -c $< -o $@
 
 clean:
 	$(RM) vnccrack
