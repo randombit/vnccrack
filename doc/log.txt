@@ -1,4 +1,11 @@
 
+* 1.0.0, July 22, 2006
+ - Largely rewrite in much cleaner C++
+ - Skip words that have the same leading 8 chars as a word already checked
+ - Make file reading and error reporting much more reliable
+ - Allow comments in the challenge/response file
+ - Report found solutions by value, instead of using the line number
+
 * 0.9.1, October 31, 2004
  - Fixed a stupid error that made the checks always fail
 
