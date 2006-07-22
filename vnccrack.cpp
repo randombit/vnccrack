@@ -17,7 +17,7 @@
 
 typedef unsigned char byte;
 
-bool next_pass(std::ifstream&, std::string&);
+bool next_pass(Wordlist&, std::string&);
 void try_pass(const std::string&, std::vector<byte*>&, std::vector<byte*>&);
 void decode_hex(const std::string&, byte*, byte*);
 
@@ -29,12 +29,7 @@ int main(int argc, char* argv[])
       return 1;
       }
 
-   std::ifstream wordlist(argv[1]);
-   if(!wordlist)
-      {
-      std::cerr << "Couldn't open wordlist " << argv[1] << std::endl;
-      return 1;
-      }
+   Wordlist wordlist(argv[1]);
 
    std::ifstream crpairs(argv[2]);
    if(!crpairs)
@@ -101,16 +96,12 @@ int main(int argc, char* argv[])
    return 0;
    }
 
-bool next_pass(std::ifstream& file, std::string& next)
+bool next_pass(Wordlist& wordlist, std::string& next)
    {
-   if(file.eof() || file.bad() || file.fail())
+   if(!wordlist.more_p())
       return false;
 
-   std::getline(file, next);
-
-   if(next.length() > 8)
-      next = next.substr(0, 8); /* trunc() */
-   return true;
+   next = wordlist.next();
    }
 
 /* Assumes ASCII */
