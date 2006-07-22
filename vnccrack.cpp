@@ -11,7 +11,6 @@
 #include <vector>
 #include <cstdlib>
 #include <cctype>
-#include <openssl/des.h>
 
 #include "vnccrack.h"
 
@@ -80,7 +79,7 @@ int main(int argc, char* argv[])
    std::cout << "Attempting crack: get some coffee?" << std::endl;
 
    while(wordlist.more_p())
-      try_pass(wordlist.next(), challenges, responses);
+      try_pass(wordlist.next().password(), challenges, responses);
 
    for(size_t j = 0; j != challenges.size(); j++)
       delete[] (challenges[j]);

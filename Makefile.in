@@ -2,7 +2,7 @@ RM=rm -f
 
 all: vnccrack
 
-OBJS=wordlist.o vnccrack.o
+OBJS=vnccrack.o wordlist.o passwd.o crpair.o
 
 EXTRA_CFLAGS=-Wall -W
 
@@ -15,8 +15,14 @@ vnccrack.o: vnccrack.cpp vnccrack.h
 wordlist.o: wordlist.cpp vnccrack.h
 	@CXX@ @CXXFLAGS@ $(EXTRA_CFLAGS) -c $< -o $@
 
+passwd.o: passwd.cpp vnccrack.h
+	@CXX@ @CXXFLAGS@ $(EXTRA_CFLAGS) -c $< -o $@
+
+crpair.o: crpair.cpp vnccrack.h
+	@CXX@ @CXXFLAGS@ $(EXTRA_CFLAGS) -c $< -o $@
+
 clean:
-	$(RM) vnccrack
+	$(RM) vnccrack *.o
 	$(RM) config.status config.log
 	$(RM) -r autom4te*.cache
 

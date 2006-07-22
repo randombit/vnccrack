@@ -28,7 +28,7 @@ std::string Wordlist::next_line()
    return next;
    }
 
-std::string Wordlist::next()
+TrialPassword Wordlist::next()
    {
    std::string line = next_line();
 
@@ -36,5 +36,5 @@ std::string Wordlist::next()
       line = next_line();
 
    last = line;
-   return line;
+   return TrialPassword(line);
    }
