@@ -17,7 +17,6 @@
 
 typedef unsigned char byte;
 
-bool next_pass(Wordlist&, std::string&);
 void try_pass(const std::string&, std::vector<byte*>&, std::vector<byte*>&);
 void decode_hex(const std::string&, byte*, byte*);
 
@@ -80,13 +79,8 @@ int main(int argc, char* argv[])
 
    std::cout << "Attempting crack: get some coffee?" << std::endl;
 
-   std::string password;
-   while(1)
-      {
-      if(!next_pass(wordlist, password))
-         break;
-      try_pass(password, challenges, responses);
-      }
+   while(wordlist.more_p())
+      try_pass(wordlist.next(), challenges, responses);
 
    for(size_t j = 0; j != challenges.size(); j++)
       delete[] (challenges[j]);
@@ -94,14 +88,6 @@ int main(int argc, char* argv[])
       delete[] (responses[j]);
 
    return 0;
-   }
-
-bool next_pass(Wordlist& wordlist, std::string& next)
-   {
-   if(!wordlist.more_p())
-      return false;
-
-   next = wordlist.next();
    }
 
 /* Assumes ASCII */
