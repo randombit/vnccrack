@@ -1,18 +1,9 @@
 /*
  *  (C) 2003,2006 Jack Lloyd (lloyd@randombit.net)
- *
- *   Todo:
- *     - Bit-sliced DES?
  */
 
-#include <string>
-#include <fstream>
-#include <iostream>
-#include <vector>
-#include <cstdlib>
-#include <cctype>
-
 #include "vnccrack.h"
+#include <iostream>
 
 int main(int argc, char* argv[])
    {
@@ -37,7 +28,7 @@ int main(int argc, char* argv[])
 
    std::cout << "Attempting crack: get some coffee?" << std::endl;
 
-   while(wordlist.more_p())
+   while(wordlist.more_p() && !crs.all_solved())
       crs.test(wordlist.next());
 
    return 0;

@@ -1,5 +1,5 @@
 /*
- *  (C) 2006 Jack Lloyd (lloyd@randombit.net)
+ *  (C) 2003,2006 Jack Lloyd (lloyd@randombit.net)
  */
 
 #include "vnccrack.h"

@@ -129,3 +129,11 @@ int ChallengeResponses::count() const
    {
    return crpairs.size();
    }
+
+bool ChallengeResponses::all_solved() const
+   {
+   for(std::size_t j = 0; j != crpairs.size(); j++)
+      if(!crpairs[j].is_solved())
+         return false;
+   return true;
+   }

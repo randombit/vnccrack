@@ -52,6 +52,7 @@ class ChallengeResponses
    {
    public:
       int count() const;
+      bool all_solved() const;
 
       void test(const TrialPassword&);
       ChallengeResponses(const std::string&);
