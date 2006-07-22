@@ -5,6 +5,20 @@
 #include "vnccrack.h"
 #include <iostream>
 
+std::ostream& operator<<(std::ostream& out, const ChallengeResponse& cr)
+   {
+   out << "#(CR)";
+   return out;
+   }
+
+class Cout_Report : public Report
+   {
+      void solution(const ChallengeResponse& cr, const std::string& pass)
+         {
+         std::cout << "Solution to " << cr << " is " << pass << "\n";
+         }
+   };
+
 int main(int argc, char* argv[])
    {
    const std::string progfile = argv[0];
@@ -20,8 +34,10 @@ int main(int argc, char* argv[])
       std::cout << "Attempting cracking of " << crs.count()
                 << " challenge/response pairs..." << std::endl;
 
+      Cout_Report reporter;
+
       while(wordlist.has_more() && !crs.all_solved())
-         crs.test(wordlist.next());
+         crs.test(wordlist.next(), reporter);
       }
    catch(std::exception& e)
       {

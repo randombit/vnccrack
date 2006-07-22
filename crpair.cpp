@@ -91,7 +91,7 @@ ChallengeResponse::ChallengeResponse(const std::string& line)
    response = hex_decode(hex_str + 32, 32);
    }
 
-void ChallengeResponses::test(const TrialPassword& pass)
+void ChallengeResponses::test(const TrialPassword& pass, Report& report)
    {
    for(std::size_t j = 0; j != crpairs.size(); j++)
       {
@@ -101,8 +101,7 @@ void ChallengeResponses::test(const TrialPassword& pass)
       crpairs[j].test(pass);
 
       if(crpairs[j].is_solved())
-         std::cout << "FOUND: C/R pair " << j+1 << " password="
-                   << pass.password() << std::endl;
+         report.solution(crpairs[j], pass.password());
       }
    }
 

@@ -48,13 +48,20 @@ class ChallengeResponse
       std::string solution;
    };
 
+class Report
+   {
+   public:
+      virtual void solution(const ChallengeResponse&, const std::string&) = 0;
+      virtual ~Report() {}
+   };
+
 class ChallengeResponses
    {
    public:
       int count() const;
       bool all_solved() const;
 
-      void test(const TrialPassword&);
+      void test(const TrialPassword&, Report&);
       ChallengeResponses(const std::string&);
    private:
       std::vector<ChallengeResponse> crpairs;
@@ -73,6 +80,5 @@ class Wordlist
       std::ifstream in;
       std::string last;
    };
-
 
 #endif
