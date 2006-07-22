@@ -13,6 +13,7 @@ std::ostream& operator<<(std::ostream& out, const ChallengeResponse& cr)
 
 class Cout_Report : public Report
    {
+   public:
       void solution(const ChallengeResponse& cr, const std::string& pass)
          {
          std::cout << "Found: " << cr << " -> " << pass << "\n";
