@@ -126,7 +126,7 @@ ChallengeResponses::ChallengeResponses(const std::string& filename)
       std::string line;
       std::getline(in, line);
 
-      if(line == "")
+      if(line == "" || line[0] == '#')
          continue;
 
       ChallengeResponse cr(line);
