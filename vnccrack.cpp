@@ -7,29 +7,27 @@
 
 int main(int argc, char* argv[])
    {
-   if(argc != 3)
+   const std::string progfile = argv[0];
+
+   try
       {
-      std::cerr << "Usage: " << argv[0] << " wordlist crpairs" << std::endl;
+      if(argc != 3)
+         throw Exception("Usage: " + progfile + " wordlist crpairs");
+
+      Wordlist wordlist(argv[1]);
+      ChallengeResponses crs(argv[2]);
+
+      std::cout << "Attempting cracking of " << crs.count()
+                << " challenge/response pairs..." << std::endl;
+
+      while(wordlist.has_more() && !crs.all_solved())
+         crs.test(wordlist.next());
+      }
+   catch(std::exception& e)
+      {
+      std::cerr << e.what() << std::endl;
       return 1;
       }
-
-   Wordlist wordlist(argv[1]);
-
-   ChallengeResponses crs(argv[2]);
-
-   std::cout << "Loaded " << crs.count() << " challenge/response pairs"
-             << std::endl;
-
-   if(crs.count() == 0)
-      {
-      std::cerr << "No challenge/response pairs found, quitting" << std::endl;
-      return 1;
-      }
-
-   std::cout << "Attempting crack: get some coffee?" << std::endl;
-
-   while(wordlist.has_more() && !crs.all_solved())
-      crs.test(wordlist.next());
 
    return 0;
    }
