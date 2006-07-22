@@ -47,6 +47,11 @@ std::string ChallengeResponse::solution_is() const
    return solution;
    }
 
+std::string ChallengeResponse::to_string() const
+   {
+   return string_rep;
+   }
+
 void ChallengeResponse::test(const TrialPassword& pass)
    {
    if(is_solved())
@@ -74,7 +79,8 @@ void ChallengeResponse::test(const TrialPassword& pass)
       solution = pass.password();
    }
 
-ChallengeResponse::ChallengeResponse(const std::string& line)
+ChallengeResponse::ChallengeResponse(const std::string& line) :
+   string_rep(line)
    {
    std::string hex;
    for(std::size_t j = 0; j != line.size(); j++)

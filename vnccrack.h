@@ -5,10 +5,10 @@
 #ifndef VNC_CRACKER_H__
 #define VNC_CRACKER_H__
 
-#include <string>
-#include <fstream>
 #include <exception>
+#include <string>
 #include <vector>
+#include <fstream>
 
 #include <openssl/des.h>
 
@@ -39,13 +39,14 @@ class ChallengeResponse
    public:
       bool is_solved() const;
       std::string solution_is() const;
+      std::string to_string() const;
 
       void test(const TrialPassword&);
 
       ChallengeResponse(const std::string&);
    private:
       std::vector<unsigned char> challenge, response;
-      std::string solution;
+      std::string solution, string_rep;
    };
 
 class Report
