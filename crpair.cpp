@@ -4,6 +4,7 @@
 
 #include "vnccrack.h"
 #include <cctype>
+#include <cstring>
 
 namespace {
 
@@ -43,6 +44,24 @@ void ChallengeResponse::test(const TrialPassword& pass)
    {
    if(is_solved())
       return;
+
+   DES_key_schedule des_ks = pass.key_schedule();
+
+   bool matched = true;
+
+   for(int j = 0; j != 16 && matched; j += 8)
+      {
+      unsigned char temp[8];
+      std::memcpy(temp, challenge + j, 8);
+
+      DES_ecb_encrypt(&temp, &temp, &des_ks, DES_ENCRYPT);      
+
+      if(std::memcmp(temp, response + j, 8))
+         matched = false;
+      }
+
+   if(matched)
+      solution = pass.password();
    }
 
 ChallengeResponse::ChallengeResponse(const std::string& line)
