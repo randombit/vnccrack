@@ -10,14 +10,14 @@ Wordlist::Wordlist(const std::string& file) : in(file.c_str())
       throw Exception("Couldn't open wordlist " + file);
    }
 
-bool Wordlist::more_p() const
+bool Wordlist::has_more() const
    {
    return in.good() && !in.eof();
    }
 
 std::string Wordlist::next_line()
    {
-   if(!more_p())
+   if(!has_more())
       return "";
 
    std::string next;

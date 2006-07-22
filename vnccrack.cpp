@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
 
    std::cout << "Attempting crack: get some coffee?" << std::endl;
 
-   while(wordlist.more_p() && !crs.all_solved())
+   while(wordlist.has_more() && !crs.all_solved())
       crs.test(wordlist.next());
 
    return 0;

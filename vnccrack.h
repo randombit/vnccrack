@@ -63,7 +63,7 @@ class ChallengeResponses
 class Wordlist
    {
    public:
-      bool more_p() const;
+      bool has_more() const;
       TrialPassword next();
 
       Wordlist(const std::string&);
