@@ -123,6 +123,9 @@ ChallengeResponses::ChallengeResponses(const std::string& filename)
       ChallengeResponse cr(line);
       crpairs.push_back(cr);
       }
+
+   if(crpairs.size() == 0)
+      throw Exception("No challenge/response pairs found");
    }
 
 int ChallengeResponses::count() const
