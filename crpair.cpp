@@ -84,8 +84,13 @@ ChallengeResponse::ChallengeResponse(const std::string& line) :
    {
    std::string hex;
    for(std::size_t j = 0; j != line.size(); j++)
+      {
+      if(line[j] == '#') // skip comments
+         break;
+
       if(std::isxdigit(line[j]))
          hex += line[j];
+      }
 
    if(hex.size() != 64)
       throw Exception("Bad C/R input line " + line);
