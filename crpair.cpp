@@ -5,7 +5,6 @@
 #include "vnccrack.h"
 #include <cctype>
 #include <fstream>
-#include <iostream>
 
 namespace {
 
