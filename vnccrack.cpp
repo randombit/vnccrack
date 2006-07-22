@@ -7,7 +7,7 @@
 
 std::ostream& operator<<(std::ostream& out, const ChallengeResponse& cr)
    {
-   out << "#(CR)";
+   out << cr.to_string();
    return out;
    }
 
@@ -15,7 +15,7 @@ class Cout_Report : public Report
    {
       void solution(const ChallengeResponse& cr, const std::string& pass)
          {
-         std::cout << "Solution to " << cr << " is " << pass << "\n";
+         std::cout << "Found: " << cr << " -> " << pass << "\n";
          }
    };
 
