@@ -49,30 +49,31 @@ class ChallengeResponse
       std::string solution, string_rep;
    };
 
-class Report
-   {
-   public:
-      virtual void solution(const ChallengeResponse&, const std::string&) = 0;
-      virtual ~Report() {}
-   };
-
 class ChallengeResponses
    {
    public:
       int count() const;
       bool all_solved() const;
 
-      void test(const TrialPassword&, Report&);
+      void test(const std::string&, class Report&);
       ChallengeResponses(const std::string&);
    private:
       std::vector<ChallengeResponse> crpairs;
    };
 
-class Wordlist
+class Password_Source
+   {
+   public:
+      virtual bool has_more() const = 0;
+      virtual std::string next() = 0;
+      virtual ~Password_Source() {}
+   };
+
+class Wordlist : public Password_Source
    {
    public:
       bool has_more() const;
-      TrialPassword next();
+      std::string next();
 
       Wordlist(const std::string&);
    private:
@@ -80,6 +81,13 @@ class Wordlist
 
       std::ifstream in;
       std::string last;
+   };
+
+class Report
+   {
+   public:
+      virtual void solution(const ChallengeResponse&, const std::string&) = 0;
+      virtual ~Report() {}
    };
 
 #endif

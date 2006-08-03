@@ -101,8 +101,11 @@ ChallengeResponse::ChallengeResponse(const std::string& line) :
    response = hex_decode(hex_str + 32, 32);
    }
 
-void ChallengeResponses::test(const TrialPassword& pass, Report& report)
+void ChallengeResponses::test(const std::string& pass_str,
+                              Report& report)
    {
+   TrialPassword pass(pass_str);
+
    for(std::size_t j = 0; j != crpairs.size(); j++)
       {
       if(crpairs[j].is_solved())

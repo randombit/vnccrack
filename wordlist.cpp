@@ -28,13 +28,12 @@ std::string Wordlist::next_line()
    return next;
    }
 
-TrialPassword Wordlist::next()
+std::string Wordlist::next()
    {
    std::string line = next_line();
 
    while(line == last)
       line = next_line();
 
-   last = line;
-   return TrialPassword(line);
+   return (last = line);
    }
