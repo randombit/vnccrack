@@ -2,14 +2,14 @@ RM=rm -f
 
 all: vnccrack
 
-OBJS=vnccrack.o wordlist.o cracker.o
+OBJS=main.o wordlist.o cracker.o
 
 EXTRA_CFLAGS=-Wall -W
 
 vnccrack: $(OBJS)
 	@CXX@ $(OBJS) @LDFLAGS@ @LIBS@ -o vnccrack
 
-vnccrack.o: vnccrack.cpp vnccrack.h
+main.o: main.cpp vnccrack.h
 	@CXX@ @CXXFLAGS@ $(EXTRA_CFLAGS) -c $< -o $@
 
 wordlist.o: wordlist.cpp vnccrack.h
