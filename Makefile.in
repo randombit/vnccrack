@@ -2,7 +2,7 @@ RM=rm -f
 
 all: vnccrack
 
-OBJS=vnccrack.o wordlist.o passwd.o crpair.o
+OBJS=vnccrack.o wordlist.o cracker.o
 
 EXTRA_CFLAGS=-Wall -W
 
@@ -15,10 +15,7 @@ vnccrack.o: vnccrack.cpp vnccrack.h
 wordlist.o: wordlist.cpp vnccrack.h
 	@CXX@ @CXXFLAGS@ $(EXTRA_CFLAGS) -c $< -o $@
 
-passwd.o: passwd.cpp vnccrack.h
-	@CXX@ @CXXFLAGS@ $(EXTRA_CFLAGS) -c $< -o $@
-
-crpair.o: crpair.cpp vnccrack.h
+cracker.o: cracker.cpp vnccrack.h
 	@CXX@ @CXXFLAGS@ $(EXTRA_CFLAGS) -c $< -o $@
 
 clean:
