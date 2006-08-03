@@ -20,22 +20,6 @@ class Cout_Report : public Report
          }
    };
 
-class VNC_Cracker
-   {
-   public:
-      void crack(ChallengeResponses& crs)
-         {
-         while(source.has_more() && !crs.all_solved())
-            crs.test(source.next(), report);
-         }
-
-      VNC_Cracker(Report& r, Password_Source& s) :
-         report(r), source(s) {}
-   private:
-      Report& report;
-      Password_Source& source;
-   };
-
 int main(int argc, char* argv[])
    {
    const std::string progfile = argv[0];

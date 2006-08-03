@@ -185,3 +185,9 @@ TrialPassword::TrialPassword(const std::string& password) : pass(password)
 
    DES_set_key_unchecked(&pass_buf, &ks);
    }
+
+void VNC_Cracker::crack(ChallengeResponses& crs)
+   {
+   while(source.has_more() && !crs.all_solved())
+      crs.test(source.next(), report);
+   }

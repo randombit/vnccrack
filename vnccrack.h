@@ -90,4 +90,16 @@ class Report
       virtual ~Report() {}
    };
 
+class VNC_Cracker
+   {
+   public:
+      void crack(ChallengeResponses&);
+
+      VNC_Cracker(Report& r, Password_Source& s) :
+         report(r), source(s) {}
+   private:
+      Report& report;
+      Password_Source& source;
+   };
+
 #endif
