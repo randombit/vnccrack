@@ -8,7 +8,7 @@
 #include <exception>
 #include <string>
 #include <vector>
-#include <fstream>
+#include <iosfwd>
 
 #include <openssl/des.h>
 
@@ -76,10 +76,12 @@ class Wordlist : public Password_Source
       std::string next();
 
       Wordlist(const std::string&);
+      ~Wordlist();
    private:
       std::string next_line();
 
-      std::ifstream in;
+      std::istream* in;
+      bool owns;
       std::string last;
    };
 

@@ -1,4 +1,4 @@
-VNCcrack 1.0.0
+VNCcrack 1.0.1
 
 Taking a VNC challenge and response (presumably sniffed), VNCcrack
 will crack the password using a word list. It requires OpenSSL 0.9.7
@@ -8,9 +8,17 @@ Usage:
 
 $ ./vnccrack [wordlist] [crpairs]
 
-where [wordlist] is a file containing potential passwords, and
-[crpairs] is a file containing one or more challenge-response pairs,
-as 32 byte hex strings separated by a space, like so:
+where [wordlist] is a file containing potential passwords. This
+parameter can also be the single character '-', meaning potential
+passwords should be read from standard input. This is useful for
+external password generators such as John the Ripper; which could
+be used like so:
+
+$ john -i -stdout:8 | ./vnccrack - passwords.dat
+
+The [crpairs] parameter specifies a file containing one or more
+challenge-response pairs, as 32 byte hex strings separated by a space,
+like so:
 
 DEA9CE46919ADCE6EFA841EDB81EED4B 850D7FD22E76F0E6CC943BD71580AF49
 6B2D76103F9F7EC4589B4FBE60A6721B CFB73EB526FA87FDF65BF1DDF99B924D
