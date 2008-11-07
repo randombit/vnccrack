@@ -23,78 +23,23 @@
 #include <botan/botan.h>
 #include <botan/des.h>
 
-class ChallengeResponse
-   {
-   public:
-      bool is_solved() const { return !solution.empty(); }
-      std::string solution_is() const { return solution; }
-      std::string to_string() const { return id; }
-
-      void test(const Botan::DES& des, const std::string& pass);
-
-      ChallengeResponse(const std::string& challenge,
-                        const std::string& response,
-                        const std::string& id);
-   private:
-      std::string id, challenge, response, solution;
-   };
-
 class ChallengeResponses
    {
    public:
-      int count() const { return crpairs.size(); }
+      int count() const { return solutions.size(); }
       bool all_solved() const;
 
-      void add(const ChallengeResponse& cr) { crpairs.push_back(cr); }
+      void add(const std::string& challenge, const std::string& response,
+               const std::string& to, const std::string& from)
+         {
+         solutions[std::make_pair(challenge, response)] = "";
+         challenge_to_id[challenge] = "from " + from + " to " + to;
+         }
 
-      void test(const std::string&, class Report&);
-
-      ChallengeResponses() {}
+      void test(const std::string&);
    private:
-      std::vector<ChallengeResponse> crpairs;
-   };
-
-class Password_Source
-   {
-   public:
-      virtual bool has_more() const = 0;
-      virtual std::string next() = 0;
-      virtual ~Password_Source() {}
-   };
-
-class Wordlist : public Password_Source
-   {
-   public:
-      bool has_more() const;
-      std::string next();
-
-      Wordlist(const std::string&);
-      ~Wordlist();
-   private:
-      std::string next_line();
-
-      std::istream* in;
-      bool owns;
-      std::string last;
-   };
-
-class Report
-   {
-   public:
-      virtual void solution(const ChallengeResponse&, const std::string&) = 0;
-      virtual ~Report() {}
-   };
-
-class VNC_Cracker
-   {
-   public:
-      void crack(ChallengeResponses&);
-
-      VNC_Cracker(Report& r, Password_Source& s) :
-         report(r), source(s) {}
-   private:
-      Report& report;
-      Password_Source& source;
+      std::map<std::string, std::string> challenge_to_id;
+      std::map<std::pair<std::string, std::string>, std::string> solutions;
    };
 
 class Packet_Reader
@@ -273,43 +218,7 @@ bool VNC_Auth_Reader::find_next(std::string& destination_address_out,
    return false; // out of gas
    }
 
-class Cout_Report : public Report
-   {
-   public:
-      void solution(const ChallengeResponse& cr, const std::string& pass)
-         {
-         std::cout << "Found: " << cr.to_string() << " -> " << pass << "\n";
-         }
-   };
-
-void ChallengeResponse::test(const Botan::DES& des, const std::string& password)
-   {
-   if(is_solved())
-      return;
-
-   unsigned char encrypted_challenge[16] = { 0 };
-   des.encrypt((const Botan::byte*)&challenge[0], &encrypted_challenge[0]);
-
-   if(std::memcmp(encrypted_challenge, &response[0], 8) == 0)
-      {
-      des.encrypt((const Botan::byte*)&challenge[8], &encrypted_challenge[8]);
-
-      if(std::memcmp(encrypted_challenge, &response[0], 16) == 0)
-         solution = password;
-      }
-   }
-
-ChallengeResponse::ChallengeResponse(const std::string& challenge_in,
-                                     const std::string& response_in,
-                                     const std::string& id_in)
-   {
-   challenge = challenge_in;
-   response = response_in;
-   id = id_in;
-   }
-
-void ChallengeResponses::test(const std::string& pass_str,
-                              Report& report)
+void ChallengeResponses::test(const std::string& password)
    {
    static const unsigned char bit_flip[256] = {
       0x00, 0x80, 0x40, 0xC0, 0x20, 0xA0, 0x60, 0xE0, 0x10, 0x90, 0x50, 0xD0,
@@ -336,61 +245,68 @@ void ChallengeResponses::test(const std::string& pass_str,
       0x3F, 0xBF, 0x7F, 0xFF };
 
    unsigned char pass_buf[8] = { 0 };
-   for(std::size_t j = 0; j != pass_str.length() && j != 8; j++)
-      pass_buf[j] = bit_flip[(unsigned char)pass_str[j]];
+   for(std::size_t j = 0; j != password.length() && j != 8; j++)
+      pass_buf[j] = bit_flip[(unsigned char)password[j]];
 
    Botan::DES des;
    des.set_key(pass_buf, sizeof(pass_buf));
 
-   for(std::size_t j = 0; j != crpairs.size(); j++)
+   // for(auto i : unsolved)
+   for(std::map<std::pair<std::string, std::string>, std::string>::iterator i = solutions.begin();
+       i != solutions.end(); ++i)
       {
-      if(crpairs[j].is_solved())
-         continue;
+      if(!i->second.empty())
+         continue; // already solved
 
-      crpairs[j].test(des, pass_str);
+      const std::string challenge = i->first.first;
+      const std::string response = i->first.second;
 
-      if(crpairs[j].is_solved())
-         report.solution(crpairs[j], pass_str);
+      unsigned char encrypted_challenge[16] = { 0 };
+      des.encrypt((const Botan::byte*)&challenge[0], &encrypted_challenge[0]);
+
+      if(std::memcmp(encrypted_challenge, &response[0], 8) == 0)
+         {
+         des.encrypt((const Botan::byte*)&challenge[8], &encrypted_challenge[8]);
+
+         if(std::memcmp(encrypted_challenge, &response[0], 16) == 0)
+            {
+            std::cout << "Solved: Password '" << password << "' used "
+                      << challenge_to_id[challenge] << "\n";
+            i->second = password;
+            }
+         }
       }
    }
 
 bool ChallengeResponses::all_solved() const
    {
-   for(std::size_t j = 0; j != crpairs.size(); j++)
-      if(!crpairs[j].is_solved())
-         return false;
+   for(std::map<std::pair<std::string, std::string>, std::string>::const_iterator i = solutions.begin();
+       i != solutions.end(); ++i)
+      {
+      if(i->second.empty())
+         return false; // at least one unsolved
+      }
+
    return true;
    }
 
-void VNC_Cracker::crack(ChallengeResponses& crs)
+class Wordlist
    {
-   while(source.has_more() && !crs.all_solved())
-      crs.test(source.next(), report);
-   }
+   public:
+      bool has_more() const;
+      std::string next();
 
-Wordlist::Wordlist(const std::string& file)
-   {
-   if(file == "-")
-      {
-      in = &std::cin;
-      owns = false;
-      }
-   else
-      {
-      in = new std::ifstream(file.c_str());
-      owns = true;
-      }
-   }
+      Wordlist(std::istream& i) : in(i) {}
+   private:
+      std::string next_line();
 
-Wordlist::~Wordlist()
-   {
-   if(owns)
-      delete in;
-   }
+      std::istream& in;
+      std::string last;
+   };
 
 bool Wordlist::has_more() const
    {
-   return in->good() && !in->eof();
+   return in.good() && !in.eof();
    }
 
 std::string Wordlist::next_line()
@@ -399,7 +315,7 @@ std::string Wordlist::next_line()
       return "";
 
    std::string next;
-   std::getline(*in, next);
+   std::getline(in, next);
 
    if(next.length() > 8)
       next = next.substr(0, 8); /* truncate to 8 chars, VNC's limit */
@@ -429,20 +345,29 @@ int main(int argc, char* argv[])
       Botan::LibraryInitializer init;
 
       VNC_Auth_Reader read(argv[1]);
-      Wordlist wordlist(argv[2]);
       ChallengeResponses crs;
 
       std::string to, from, challenge, response;
-
       while(read.find_next(to, from, challenge, response))
          {
-         crs.add(ChallengeResponse(challenge, response, "To " + to + " from " + from));
+         crs.add(challenge, response, to, from);
          }
 
-      Cout_Report reporter;
+      std::string wordlist_file = argv[2];
 
-      VNC_Cracker cracker(reporter, wordlist);
-      cracker.crack(crs);
+      if(wordlist_file == "-")
+         {
+         Wordlist wordlist(std::cin);
+         while(wordlist.has_more() && !crs.all_solved())
+            crs.test(wordlist.next());
+         }
+      else
+         {
+         std::ifstream in(wordlist_file.c_str());
+         Wordlist wordlist(in);
+         while(wordlist.has_more() && !crs.all_solved())
+            crs.test(wordlist.next());
+         }
       }
    catch(std::exception& e)
       {
