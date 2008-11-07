@@ -1,6 +1,21 @@
 /*
-  (C) 2008 Jack Lloyd <lloyd@randombit.net>
+VNCcrack
+
+(C) 2003, 2004, 2006, 2008 Jack Lloyd <lloyd@randombit.net>
+
+Licensed under the GNU GPL v2
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public
+License along with this program; if not, write to the Free
+Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+02111-1307 USA.
 */
+
 #include <cctype>
 #include <exception>
 #include <fstream>
@@ -22,25 +37,6 @@
 
 #include <botan/botan.h>
 #include <botan/des.h>
-
-class ChallengeResponses
-   {
-   public:
-      int count() const { return solutions.size(); }
-      bool all_solved() const;
-
-      void add(const std::string& challenge, const std::string& response,
-               const std::string& to, const std::string& from)
-         {
-         solutions[std::make_pair(challenge, response)] = "";
-         challenge_to_id[challenge] = "from " + from + " to " + to;
-         }
-
-      void test(const std::string&);
-   private:
-      std::map<std::string, std::string> challenge_to_id;
-      std::map<std::pair<std::string, std::string>, std::string> solutions;
-   };
 
 class Packet_Reader
    {
@@ -218,7 +214,7 @@ bool VNC_Auth_Reader::find_next(std::string& destination_address_out,
    return false; // out of gas
    }
 
-void ChallengeResponses::test(const std::string& password)
+void attempt_crack(VNC_Auth_Reader& reader, std::istream& wordlist)
    {
    static const unsigned char bit_flip[256] = {
       0x00, 0x80, 0x40, 0xC0, 0x20, 0xA0, 0x60, 0xE0, 0x10, 0x90, 0x50, 0xD0,
@@ -244,72 +240,55 @@ void ChallengeResponses::test(const std::string& password)
       0x0F, 0x8F, 0x4F, 0xCF, 0x2F, 0xAF, 0x6F, 0xEF, 0x1F, 0x9F, 0x5F, 0xDF,
       0x3F, 0xBF, 0x7F, 0xFF };
 
-   unsigned char pass_buf[8] = { 0 };
-   for(std::size_t j = 0; j != password.length() && j != 8; j++)
-      pass_buf[j] = bit_flip[(unsigned char)password[j]];
-
-   Botan::DES des;
-   des.set_key(pass_buf, sizeof(pass_buf));
-
-   // for(auto i : unsolved)
-   for(std::map<std::pair<std::string, std::string>, std::string>::iterator i = solutions.begin();
-       i != solutions.end(); ++i)
-      {
-      if(!i->second.empty())
-         continue; // already solved
-
-      const std::string challenge = i->first.first;
-      const std::string response = i->first.second;
-
-      unsigned char encrypted_challenge[16] = { 0 };
-      des.encrypt((const Botan::byte*)&challenge[0], &encrypted_challenge[0]);
-
-      if(std::memcmp(encrypted_challenge, &response[0], 8) == 0)
-         {
-         des.encrypt((const Botan::byte*)&challenge[8], &encrypted_challenge[8]);
-
-         if(std::memcmp(encrypted_challenge, &response[0], 16) == 0)
-            {
-            std::cout << "Solved: Password '" << password << "' used "
-                      << challenge_to_id[challenge] << "\n";
-            i->second = password;
-            }
-         }
-      }
-   }
-
-bool ChallengeResponses::all_solved() const
-   {
-   for(std::map<std::pair<std::string, std::string>, std::string>::const_iterator i = solutions.begin();
-       i != solutions.end(); ++i)
-      {
-      if(i->second.empty())
-         return false; // at least one unsolved
-      }
-
-   return true;
-   }
-
-void attempt_crack(VNC_Auth_Reader& read, std::istream& wordlist)
-   {
-   ChallengeResponses crs;
+   std::map<std::string, std::string> challenge_to_id;
+   std::map<std::pair<std::string, std::string>, std::string> solutions;
 
    std::string to, from, challenge, response;
-   while(read.find_next(to, from, challenge, response))
+   while(reader.find_next(to, from, challenge, response))
       {
-      crs.add(challenge, response, to, from);
+      solutions[std::make_pair(challenge, response)] = "";
+      challenge_to_id[challenge] = "from " + from + " to " + to;
       }
 
-   std::string line;
+   std::string password;
+   Botan::DES des;
+   unsigned char encrypted_challenge[16] = { 0 };
 
    while(wordlist.good())
       {
-      std::getline(wordlist, line);
+      std::getline(wordlist, password);
 
-      if(line.length() > 8)
-         line = line.substr(0, 8); /* truncate to 8 chars, VNC's limit */
+      // Truncate to 8 bytes (maximum supported by VNC)
+      unsigned char pass_buf[8] = { 0 };
+      for(std::size_t j = 0; j != password.length() && j != 8; j++)
+         pass_buf[j] = bit_flip[(unsigned char)password[j]];
 
-      crs.test(line);
+      des.set_key(pass_buf, sizeof(pass_buf));
+
+      // for(auto i : unsolved)
+      for(std::map<std::pair<std::string, std::string>, std::string>::iterator i = solutions.begin();
+          i != solutions.end(); ++i)
+         {
+         if(!i->second.empty())
+            continue; // already solved
+
+         const std::string challenge = i->first.first;
+         const std::string response = i->first.second;
+
+         des.encrypt((const Botan::byte*)&challenge[0], &encrypted_challenge[0]);
+
+         if(std::memcmp(encrypted_challenge, &response[0], 8) == 0)
+            {
+            des.encrypt((const Botan::byte*)&challenge[8], &encrypted_challenge[8]);
+
+            if(std::memcmp(encrypted_challenge, &response[0], 16) == 0)
+               {
+               std::cout << "Solved: Password '" << password << "' used "
+                         << challenge_to_id[challenge] << "\n";
+               i->second = password;
+               }
+            }
+         }
       }
    }
 
@@ -319,23 +298,24 @@ int main(int argc, char* argv[])
       {
       if(argc != 3)
          {
-         std::cerr << "Usage: " << argv[0] << " <pcapfile> <wordlist>\n";
+         std::cerr << "VNCcrack 2.1 (http://www.randombit.net/code/vnccrack/)\n"
+                   << "Usage: " << argv[0] << " <pcapfile> <wordlist>\n";
          return 1;
          }
 
       Botan::LibraryInitializer init;
 
-      VNC_Auth_Reader read(argv[1]);
+      VNC_Auth_Reader reader(argv[1]);
       std::string wordlist_file = argv[2];
 
       if(wordlist_file == "-")
          {
-         attempt_crack(read, std::cin);
+         attempt_crack(reader, std::cin);
          }
       else
          {
          std::ifstream in(wordlist_file.c_str());
-         attempt_crack(read, in);
+         attempt_crack(reader, in);
          }
       }
    catch(std::exception& e)

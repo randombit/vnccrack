@@ -1,4 +1,7 @@
 
+* 2.1, ??, ??, ??
+ - Substantial optimizations and internal cleanups, much smaller source
+
 * 2.0, November 7, 2008
  - Add ability to read directly from a pcap file
  - Switch to using Botan instead of OpenSSL for DES
