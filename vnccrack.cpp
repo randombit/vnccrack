@@ -23,18 +23,6 @@
 #include <botan/botan.h>
 #include <botan/des.h>
 
-class TrialPassword
-   {
-   public:
-      std::string password() const { return pass; }
-      const Botan::DES& des_obj() const { return des; }
-
-      TrialPassword(const std::string&);
-   private:
-      Botan::DES des;
-      std::string pass;
-   };
-
 class ChallengeResponse
    {
    public:
@@ -42,7 +30,7 @@ class ChallengeResponse
       std::string solution_is() const { return solution; }
       std::string to_string() const { return id; }
 
-      void test(const TrialPassword&);
+      void test(const Botan::DES& des, const std::string& pass);
 
       ChallengeResponse(const std::string& challenge,
                         const std::string& response,
@@ -54,7 +42,7 @@ class ChallengeResponse
 class ChallengeResponses
    {
    public:
-      int count() const;
+      int count() const { return crpairs.size(); }
       bool all_solved() const;
 
       void add(const ChallengeResponse& cr) { crpairs.push_back(cr); }
@@ -285,28 +273,19 @@ bool VNC_Auth_Reader::find_next(std::string& destination_address_out,
    return false; // out of gas
    }
 
-std::ostream& operator<<(std::ostream& out, const ChallengeResponse& cr)
-   {
-   out << cr.to_string();
-   return out;
-   }
-
 class Cout_Report : public Report
    {
    public:
       void solution(const ChallengeResponse& cr, const std::string& pass)
          {
-         std::cout << "Found: " << cr << " -> " << pass << "\n";
+         std::cout << "Found: " << cr.to_string() << " -> " << pass << "\n";
          }
    };
 
-
-void ChallengeResponse::test(const TrialPassword& pass)
+void ChallengeResponse::test(const Botan::DES& des, const std::string& password)
    {
    if(is_solved())
       return;
-
-   const Botan::DES& des = pass.des_obj();
 
    unsigned char encrypted_challenge[16] = { 0 };
    des.encrypt((const Botan::byte*)&challenge[0], &encrypted_challenge[0]);
@@ -316,7 +295,7 @@ void ChallengeResponse::test(const TrialPassword& pass)
       des.encrypt((const Botan::byte*)&challenge[8], &encrypted_challenge[8]);
 
       if(std::memcmp(encrypted_challenge, &response[0], 16) == 0)
-         solution = pass.password();
+         solution = password;
       }
    }
 
@@ -331,35 +310,6 @@ ChallengeResponse::ChallengeResponse(const std::string& challenge_in,
 
 void ChallengeResponses::test(const std::string& pass_str,
                               Report& report)
-   {
-   TrialPassword pass(pass_str);
-
-   for(std::size_t j = 0; j != crpairs.size(); j++)
-      {
-      if(crpairs[j].is_solved())
-         continue;
-
-      crpairs[j].test(pass);
-
-      if(crpairs[j].is_solved())
-         report.solution(crpairs[j], pass.password());
-      }
-   }
-
-int ChallengeResponses::count() const
-   {
-   return crpairs.size();
-   }
-
-bool ChallengeResponses::all_solved() const
-   {
-   for(std::size_t j = 0; j != crpairs.size(); j++)
-      if(!crpairs[j].is_solved())
-         return false;
-   return true;
-   }
-
-TrialPassword::TrialPassword(const std::string& password) : pass(password)
    {
    static const unsigned char bit_flip[256] = {
       0x00, 0x80, 0x40, 0xC0, 0x20, 0xA0, 0x60, 0xE0, 0x10, 0x90, 0x50, 0xD0,
@@ -386,10 +336,30 @@ TrialPassword::TrialPassword(const std::string& password) : pass(password)
       0x3F, 0xBF, 0x7F, 0xFF };
 
    unsigned char pass_buf[8] = { 0 };
-   for(std::size_t j = 0; j != pass.length() && j != 8; j++)
-      pass_buf[j] = bit_flip[(unsigned char)pass[j]];
+   for(std::size_t j = 0; j != pass_str.length() && j != 8; j++)
+      pass_buf[j] = bit_flip[(unsigned char)pass_str[j]];
 
+   Botan::DES des;
    des.set_key(pass_buf, sizeof(pass_buf));
+
+   for(std::size_t j = 0; j != crpairs.size(); j++)
+      {
+      if(crpairs[j].is_solved())
+         continue;
+
+      crpairs[j].test(des, pass_str);
+
+      if(crpairs[j].is_solved())
+         report.solution(crpairs[j], pass_str);
+      }
+   }
+
+bool ChallengeResponses::all_solved() const
+   {
+   for(std::size_t j = 0; j != crpairs.size(); j++)
+      if(!crpairs[j].is_solved())
+         return false;
+   return true;
    }
 
 void VNC_Cracker::crack(ChallengeResponses& crs)
