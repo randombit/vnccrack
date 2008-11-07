@@ -10,7 +10,7 @@
 #include <vector>
 #include <iosfwd>
 
-#include <openssl/des.h>
+#include <botan/des.h>
 
 class Exception : public std::exception
    {
@@ -26,27 +26,28 @@ class TrialPassword
    {
    public:
       std::string password() const { return pass; }
-      DES_key_schedule key_schedule() const { return ks; }
+      const Botan::DES& des_obj() const { return des; }
 
       TrialPassword(const std::string&);
    private:
-      DES_key_schedule ks;
+      Botan::DES des;
       std::string pass;
    };
 
 class ChallengeResponse
    {
    public:
-      bool is_solved() const;
-      std::string solution_is() const;
-      std::string to_string() const;
+      bool is_solved() const { return !solution.empty(); }
+      std::string solution_is() const { return solution; }
+      std::string to_string() const { return id; }
 
       void test(const TrialPassword&);
 
-      ChallengeResponse(const std::string&);
+      ChallengeResponse(const std::string& challenge,
+                        const std::string& response,
+                        const std::string& id);
    private:
-      std::vector<unsigned char> challenge, response;
-      std::string solution, string_rep;
+      std::string id, challenge, response, solution;
    };
 
 class ChallengeResponses
@@ -55,8 +56,11 @@ class ChallengeResponses
       int count() const;
       bool all_solved() const;
 
+      void add(const ChallengeResponse& cr) { crpairs.push_back(cr); }
+
       void test(const std::string&, class Report&);
-      ChallengeResponses(const std::string&);
+
+      ChallengeResponses() {}
    private:
       std::vector<ChallengeResponse> crpairs;
    };

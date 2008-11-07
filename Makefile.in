@@ -4,19 +4,19 @@ all: vnccrack
 
 OBJS=main.o wordlist.o cracker.o
 
-EXTRA_CFLAGS=-Wall -W
+CFLAGS = -O2 -Wall -W @BOTAN_CPPFLAGS@
 
 vnccrack: $(OBJS)
-	@CXX@ $(OBJS) @LDFLAGS@ @LIBS@ -o vnccrack
+	@CXX@ $(OBJS) @BOTAN_LIBS@ -o vnccrack
 
 main.o: main.cpp vnccrack.h
-	@CXX@ @CXXFLAGS@ $(EXTRA_CFLAGS) -c $< -o $@
+	@CXX@ $(CFLAGS) -c $< -o $@
 
 wordlist.o: wordlist.cpp vnccrack.h
-	@CXX@ @CXXFLAGS@ $(EXTRA_CFLAGS) -c $< -o $@
+	@CXX@ $(CFLAGS) -c $< -o $@
 
 cracker.o: cracker.cpp vnccrack.h
-	@CXX@ @CXXFLAGS@ $(EXTRA_CFLAGS) -c $< -o $@
+	@CXX@ $(CFLAGS) -c $< -o $@
 
 clean:
 	$(RM) vnccrack *.o
