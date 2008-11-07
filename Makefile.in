@@ -19,3 +19,6 @@ clean:
 
 distclean: clean
 	$(RM) Makefile
+
+install:
+	cp vnccrack @prefix@/bin
