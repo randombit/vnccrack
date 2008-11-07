@@ -7,4 +7,6 @@ AC_PROG_CXX
 
 VNCCRACK_FIND_BOTAN
 
+AC_CHECK_LIB(pcap, pcap_open_offline)
+
 AC_OUTPUT(Makefile)
