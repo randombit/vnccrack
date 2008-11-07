@@ -1,5 +1,5 @@
 
-# Copied from net.venge.monotone.stripped (by Markus Wanner)
+# Copied+modified from net.venge.monotone.stripped (by Markus Wanner)
 # Monotone is licensed under the GPLv2
 
 AC_DEFUN([VNCCRACK_FIND_BOTAN],
@@ -12,19 +12,15 @@ AC_DEFUN([VNCCRACK_FIND_BOTAN],
 
     found_botan=yes
 
-    # make sure we have to do with botan version 1.7
     save_CPPFLAGS="$CPPFLAGS"
     CPPFLAGS="$CPPFLAGS $BOTAN_CPPFLAGS"
     AC_PREPROC_IFELSE([
 #include <botan/version.h>
 
-#if BOTAN_VERSION_CODE < BOTAN_VERSION_CODE_FOR(1,7,8)
+#if BOTAN_VERSION_CODE < BOTAN_VERSION_CODE_FOR(1,6,0)
 #error "Botan is too old"
 #endif
-
-#if BOTAN_VERSION_CODE == BOTAN_VERSION_CODE_FOR(1,7,14)
-#error "Botan 1.7.14 is unusable"
-#endif],
+],
     [botan_version_match=yes],
     [botan_version_match=no])
     if test $botan_version_match = no; then
@@ -60,4 +56,3 @@ AC_DEFUN([VNCCRACK_FIND_BOTAN],
     AC_MSG_ERROR([Botan cannot be found.])
   fi
 ])
-
