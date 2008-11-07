@@ -1,3 +1,6 @@
+/*
+  (C) 2008 Jack Lloyd <lloyd@randombit.net>
+*/
 #include <iostream>
 #include <string>
 #include <stdexcept>
@@ -134,14 +137,18 @@ bool VNC_Auth_Reader::find_next(std::string& destination_address_out,
 
          std::string challenge, response;
 
+#if 0
          printf("Saw VNCAUTH_ from %s to %s, searching...\n", from.c_str(), to.c_str());
+#endif
 
          while(reader.kick()) // find the challene
             {
+#if 0
             printf("Found new packet len %d from %s to %s\n",
                    reader.payload().length(),
                    reader.source_address().c_str(),
                    reader.destination_address().c_str());
+#endif
 
             if(from == reader.source_address() &&
                to == reader.destination_address() &&
@@ -154,10 +161,12 @@ bool VNC_Auth_Reader::find_next(std::string& destination_address_out,
 
          while(reader.kick()) // now find response
             {
+#if 0
             printf("Found new packet len %d from %s to %s\n",
                    reader.payload().length(),
                    reader.source_address().c_str(),
                    reader.destination_address().c_str());
+#endif
 
             if(to == reader.source_address() &&
                from == reader.destination_address() &&
@@ -182,16 +191,41 @@ bool VNC_Auth_Reader::find_next(std::string& destination_address_out,
    return false; // out of gas
    }
 
-int main()
+std::ostream& operator<<(std::ostream& out, const ChallengeResponse& cr)
+   {
+   out << cr.to_string();
+   return out;
+   }
+
+class Cout_Report : public Report
+   {
+   public:
+      void solution(const ChallengeResponse& cr, const std::string& pass)
+         {
+         std::cout << "Found: " << cr << " -> " << pass << "\n";
+         }
+   };
+
+int main(int argc, char* argv[])
    {
    try
       {
-      VNC_Auth_Reader read("vnc_auth.pcap");
+      if(argc != 3)
+         {
+         std::cerr << "Usage: " << argv[0] << " <pcapfile> <wordlist>\n";
+         return 1;
+         }
+
+      VNC_Auth_Reader read(argv[1]);
+      Wordlist wordlist(argv[2]);
+      ChallengeResponses crs;
 
       std::string to, from, challenge, response;
 
       while(read.find_next(to, from, challenge, response))
          {
+
+
          printf("From %s to %s ", from.c_str(), to.c_str());
          for(int j = 0; j != challenge.size(); ++j)
             printf("%02X", (unsigned char)challenge[j]);
@@ -202,6 +236,10 @@ int main()
 
          }
 
+      Cout_Report reporter;
+
+      VNC_Cracker cracker(reporter, wordlist);
+      //cracker.crack(crs);
       }
    catch(std::exception& e)
       {
