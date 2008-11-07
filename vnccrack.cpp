@@ -290,49 +290,7 @@ bool ChallengeResponses::all_solved() const
    return true;
    }
 
-class Wordlist
-   {
-   public:
-      bool has_more() const;
-      std::string next();
-
-      Wordlist(std::istream& i) : in(i) {}
-   private:
-      std::string next_line();
-
-      std::istream& in;
-      std::string last;
-   };
-
-bool Wordlist::has_more() const
-   {
-   return in.good() && !in.eof();
-   }
-
-std::string Wordlist::next_line()
-   {
-   if(!has_more())
-      return "";
-
-   std::string next;
-   std::getline(in, next);
-
-   if(next.length() > 8)
-      next = next.substr(0, 8); /* truncate to 8 chars, VNC's limit */
-   return next;
-   }
-
-std::string Wordlist::next()
-   {
-   std::string line = next_line();
-
-   while(line == last)
-      line = next_line();
-
-   return (last = line);
-   }
-
-void attempt_crack(VNC_Auth_Reader& read, std::istream& wordlist_source)
+void attempt_crack(VNC_Auth_Reader& read, std::istream& wordlist)
    {
    ChallengeResponses crs;
 
@@ -342,9 +300,17 @@ void attempt_crack(VNC_Auth_Reader& read, std::istream& wordlist_source)
       crs.add(challenge, response, to, from);
       }
 
-   Wordlist wordlist(wordlist_source);
-   while(wordlist.has_more() && !crs.all_solved())
-      crs.test(wordlist.next());
+   std::string line;
+
+   while(wordlist.good())
+      {
+      std::getline(wordlist, line);
+
+      if(line.length() > 8)
+         line = line.substr(0, 8); /* truncate to 8 chars, VNC's limit */
+
+      crs.test(line);
+      }
    }
 
 int main(int argc, char* argv[])
