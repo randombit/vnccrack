@@ -1,4 +1,8 @@
 
+* 2.0, November 7, 2008
+ - Add ability to read directly from a pcap file
+ - Switch to using Botan instead of OpenSSL for DES
+
 * 1.0.0, July 22, 2006
  - Largely rewritten in much cleaner C++
  - Skip words that have the same leading 8 chars as a word already checked
