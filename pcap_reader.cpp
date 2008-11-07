@@ -88,13 +88,13 @@ bool Packet_Reader::kick()
 
       payload_str = std::string(reinterpret_cast<const char*>(payload_buf), payload_len);
 
-      std::ostringstream os;
+      std::ostringstream os1;
+      os1 << inet_ntoa(ip_header->ip_src) << ':' << tcp->source;
+      src_addr_str = os1.str();
 
-      os << inet_ntoa(ip_header->ip_src) << ':' << tcp->source;
-      src_addr_str = os.str();
-
-      os << inet_ntoa(ip_header->ip_dst) << ':' << tcp->dest;
-      dest_addr_str = os.str();
+      std::ostringstream os2;
+      os2 << inet_ntoa(ip_header->ip_dst) << ':' << tcp->dest;
+      dest_addr_str = os2.str();
 
       return true;  // sucessfully got a TCP packet of some kind (yay)
       }
@@ -102,28 +102,102 @@ bool Packet_Reader::kick()
    return false; // all out of bits
    }
 
+class VNC_Auth_Reader
+   {
+   public:
+      VNC_Auth_Reader(const std::string& filename) : reader(filename) {}
+
+      bool find_next(std::string& destination_address_out,
+                     std::string& source_address_out,
+                     std::string& challenge_out,
+                     std::string& response_out);
+
+   private:
+      Packet_Reader reader;
+   };
+
+bool VNC_Auth_Reader::find_next(std::string& destination_address_out,
+                                std::string& source_address_out,
+                                std::string& challenge_out,
+                                std::string& response_out)
+   {
+   while(reader.kick())
+      {
+      const std::string payload = reader.payload();
+
+      // This could be a lot smarter. It would be nice in particular
+      // to handle malformed streams and concurrent handshakes.
+      if(payload.find("VNCAUTH_") != std::string::npos)
+         {
+         const std::string from = reader.source_address();
+         const std::string to = reader.destination_address();
+
+         std::string challenge, response;
+
+         printf("Saw VNCAUTH_ from %s to %s, searching...\n", from.c_str(), to.c_str());
+
+         while(reader.kick()) // find the challene
+            {
+            printf("Found new packet len %d from %s to %s\n",
+                   reader.payload().length(),
+                   reader.source_address().c_str(),
+                   reader.destination_address().c_str());
+
+            if(from == reader.source_address() &&
+               to == reader.destination_address() &&
+               reader.payload().size() == 16)
+               {
+               challenge = reader.payload();
+               break;
+               }
+            }
+
+         while(reader.kick()) // now find response
+            {
+            printf("Found new packet len %d from %s to %s\n",
+                   reader.payload().length(),
+                   reader.source_address().c_str(),
+                   reader.destination_address().c_str());
+
+            if(to == reader.source_address() &&
+               from == reader.destination_address() &&
+               reader.payload().size() == 16)
+               {
+               response = reader.payload();
+               break;
+               }
+            }
+
+         if(challenge != "" && response != "")
+            {
+            challenge_out = challenge;
+            response_out = response;
+            destination_address_out = to;
+            source_address_out = from;
+            return true;
+            }
+         }
+      }
+
+   return false; // out of gas
+   }
+
 int main()
    {
    try
       {
-      Packet_Reader reader("vnc_auth.pcap");
+      VNC_Auth_Reader read("vnc_auth.pcap");
 
-      while(reader.kick())
+      std::string to, from, challenge, response;
+
+      while(read.find_next(to, from, challenge, response))
          {
-         std::string payload = reader.payload();
-
-         if(payload.find("VNCAUTH_") != std::string::npos)
-            printf("Saw VNCAUTH_ req from %s to %s\n",
-                   reader.source_address().c_str(),
-                   reader.destination_address().c_str());
-
-         for(size_t j = 0; j != payload.size(); ++j)
-            {
-            if(isprint(payload[j]))
-               printf("%c", payload[j]);
-            else
-               printf("\\%02X", payload[j]);
-            }
+         printf("From %s to %s ", from.c_str(), to.c_str());
+         for(int j = 0; j != challenge.size(); ++j)
+            printf("%02X", (unsigned char)challenge[j]);
+         printf(" ");
+         for(int j = 0; j != response.size(); ++j)
+            printf("%02X", (unsigned char)response[j]);
          printf("\n");
 
          }
