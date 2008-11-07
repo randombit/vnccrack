@@ -332,6 +332,21 @@ std::string Wordlist::next()
    return (last = line);
    }
 
+void attempt_crack(VNC_Auth_Reader& read, std::istream& wordlist_source)
+   {
+   ChallengeResponses crs;
+
+   std::string to, from, challenge, response;
+   while(read.find_next(to, from, challenge, response))
+      {
+      crs.add(challenge, response, to, from);
+      }
+
+   Wordlist wordlist(wordlist_source);
+   while(wordlist.has_more() && !crs.all_solved())
+      crs.test(wordlist.next());
+   }
+
 int main(int argc, char* argv[])
    {
    try
@@ -345,28 +360,16 @@ int main(int argc, char* argv[])
       Botan::LibraryInitializer init;
 
       VNC_Auth_Reader read(argv[1]);
-      ChallengeResponses crs;
-
-      std::string to, from, challenge, response;
-      while(read.find_next(to, from, challenge, response))
-         {
-         crs.add(challenge, response, to, from);
-         }
-
       std::string wordlist_file = argv[2];
 
       if(wordlist_file == "-")
          {
-         Wordlist wordlist(std::cin);
-         while(wordlist.has_more() && !crs.all_solved())
-            crs.test(wordlist.next());
+         attempt_crack(read, std::cin);
          }
       else
          {
          std::ifstream in(wordlist_file.c_str());
-         Wordlist wordlist(in);
-         while(wordlist.has_more() && !crs.all_solved())
-            crs.test(wordlist.next());
+         attempt_crack(read, in);
          }
       }
    catch(std::exception& e)
