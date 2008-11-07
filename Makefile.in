@@ -7,7 +7,7 @@ OBJS=main.o wordlist.o cracker.o
 CFLAGS = -O2 -Wall -W @BOTAN_CPPFLAGS@
 
 vnccrack: $(OBJS)
-	@CXX@ $(OBJS) @BOTAN_LIBS@ -o vnccrack
+	@CXX@ $(OBJS) @BOTAN_LIBS@ -lpcap -o vnccrack
 
 main.o: main.cpp vnccrack.h
 	@CXX@ $(CFLAGS) -c $< -o $@

@@ -5,6 +5,8 @@
 #include <string>
 #include <stdexcept>
 #include <sstream>
+#include <fstream>
+#include <cctype>
 
 #include <pcap.h>
 #include <netinet/in.h>
@@ -13,9 +15,9 @@
 #include <arpa/inet.h>
 #include <netinet/if_ether.h>
 
-#include <ctype.h>
-
 #include "vnccrack.h"
+
+#include <botan/botan.h>
 
 class Packet_Reader
    {
@@ -210,60 +212,6 @@ class Cout_Report : public Report
 
 int main(int argc, char* argv[])
    {
-   const std::string progfile = argv[0];
-
-   Botan::LibraryInitializer init;
-
-   try
-      {
-      if(argc != 3)
-         throw Exception("Usage: " + progfile + " wordlist crpairs");
-
-      Wordlist wordlist(argv[1]);
-      std::ifstream crinfo(argv[2]);
-      if(!crinfo)
-         throw std::runtime_error("Couldn't open C/R pair file");
-
-      ChallengeResponses crs;
-      Botan::Pipe pipe(new Botan::Hex_Decoder);
-
-      while(crinfo.good())
-         {
-         std::string line;
-         std::getline(crinfo, line);
-
-         if(line.size() != 65)
-            continue;
-
-         pipe.process_msg((const Botan::byte*)&line[0], 32);
-         std::string challenge = pipe.read_all_as_string(Botan::Pipe::LAST_MESSAGE);
-
-         pipe.process_msg((const Botan::byte*)&line[33], 32);
-         std::string response = pipe.read_all_as_string(Botan::Pipe::LAST_MESSAGE);
-
-         crs.add(ChallengeResponse(challenge, response, line));
-         }
-
-      std::cout << "Attempting cracking of " << crs.count()
-                << " challenge/response pairs..." << std::endl;
-
-      Cout_Report reporter;
-
-      VNC_Cracker cracker(reporter, wordlist);
-      cracker.crack(crs);
-      }
-   catch(std::exception& e)
-      {
-      std::cerr << e.what() << std::endl;
-      return 1;
-      }
-
-   return 0;
-   }
-
-#if 0
-int main(int argc, char* argv[])
-   {
    try
       {
       if(argc != 3)
@@ -271,6 +219,8 @@ int main(int argc, char* argv[])
          std::cerr << "Usage: " << argv[0] << " <pcapfile> <wordlist>\n";
          return 1;
          }
+
+      Botan::LibraryInitializer init;
 
       VNC_Auth_Reader read(argv[1]);
       Wordlist wordlist(argv[2]);
@@ -280,7 +230,7 @@ int main(int argc, char* argv[])
 
       while(read.find_next(to, from, challenge, response))
          {
-         crs.add(challenge, response, "To " + to + " from " + from);
+         crs.add(ChallengeResponse(challenge, response, "To " + to + " from " + from));
          }
 
       Cout_Report reporter;
@@ -296,4 +246,3 @@ int main(int argc, char* argv[])
 
    return 0;
    }
-#endif
