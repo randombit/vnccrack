@@ -1,6 +1,6 @@
 
-* 2.1, 2008-??-??
- - Substantial optimizations and internal cleanups, much smaller source
+* 2.1, 2008-11-07
+ - Substantial optimizations and internal cleanups, much smaller source code
 
 * 2.0, 2008-11-07
  - Add ability to read directly from a pcap file
