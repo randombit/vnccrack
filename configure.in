@@ -2,13 +2,9 @@
 
 AC_INIT(main.cpp)
 
+AC_LANG([C++])
 AC_PROG_CXX
 
-AC_CHECK_LIB(crypto, DES_set_key_unchecked)
-
-if test x$ac_cv_lib_crypto_DES_set_key_unchecked != xyes
-then
-   AC_MSG_ERROR("Couldn't find working OpenSSL")
-fi
+VNCCRACK_FIND_BOTAN
 
 AC_OUTPUT(Makefile)
