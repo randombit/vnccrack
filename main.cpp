@@ -96,11 +96,11 @@ bool Packet_Reader::kick()
       payload_str = std::string(reinterpret_cast<const char*>(payload_buf), payload_len);
 
       std::ostringstream os1;
-      os1 << inet_ntoa(ip_header->ip_src) << ':' << tcp->source;
+      os1 << inet_ntoa(ip_header->ip_src) << ':' << ntohs(tcp->source);
       src_addr_str = os1.str();
 
       std::ostringstream os2;
-      os2 << inet_ntoa(ip_header->ip_dst) << ':' << tcp->dest;
+      os2 << inet_ntoa(ip_header->ip_dst) << ':' << ntohs(tcp->dest);
       dest_addr_str = os2.str();
 
       return true;  // sucessfully got a TCP packet of some kind (yay)
