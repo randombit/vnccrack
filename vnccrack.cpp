@@ -17,13 +17,10 @@ Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
 */
 
 #include <cctype>
-#include <exception>
 #include <fstream>
-#include <iosfwd>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-#include <string>
 #include <string>
 #include <vector>
 
