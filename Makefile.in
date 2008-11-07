@@ -2,20 +2,14 @@ RM=rm -f
 
 all: vnccrack
 
-OBJS=main.o wordlist.o cracker.o
+OBJS=vnccrack.o
 
 CFLAGS = -O2 -Wall -W @BOTAN_CPPFLAGS@
 
 vnccrack: $(OBJS)
 	@CXX@ $(OBJS) @BOTAN_LIBS@ -lpcap -o vnccrack
 
-main.o: main.cpp vnccrack.h
-	@CXX@ $(CFLAGS) -c $< -o $@
-
-wordlist.o: wordlist.cpp vnccrack.h
-	@CXX@ $(CFLAGS) -c $< -o $@
-
-cracker.o: cracker.cpp vnccrack.h
+vnccrack.o: vnccrack.cpp
 	@CXX@ $(CFLAGS) -c $< -o $@
 
 clean:
