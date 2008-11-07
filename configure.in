@@ -1,6 +1,6 @@
 # This could be better
 
-AC_INIT(main.cpp)
+AC_INIT(vnccrack.cpp)
 
 AC_LANG([C++])
 AC_PROG_CXX
