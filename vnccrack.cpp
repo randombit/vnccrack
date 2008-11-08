@@ -35,6 +35,8 @@ Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
 #include <botan/botan.h>
 #include <botan/des.h>
 
+#include <boost/thread.hpp>
+
 class Packet_Reader
    {
    public:
@@ -208,7 +210,34 @@ bool VNC_Auth_Reader::find_next(std::string& id_out,
    return false; // out of gas
    }
 
-void attempt_crack(VNC_Auth_Reader& reader, std::istream& wordlist)
+class vnc_crack_thread
+   {
+   public:
+      vnc_crack_thread(std::istream& wrd,
+                       std::map<std::pair<std::string, std::string>, std::string>& solutions_ref,
+                       const std::map<std::string, std::string>& chal_to_id,
+                       boost::mutex& wordlist_mux,
+                       boost::mutex& solutions_mux) :
+         challenge_to_id(chal_to_id),
+         solutions(solutions_ref),
+         solutions_mutex(solutions_mux),
+         wordlist(wrd),
+         io_mutex(wordlist_mux)
+         {}
+
+      void operator()();
+
+   private:
+      const std::map<std::string, std::string>& challenge_to_id;
+
+      std::map<std::pair<std::string, std::string>, std::string>& solutions;
+      boost::mutex& solutions_mutex;
+
+      std::istream& wordlist;
+      boost::mutex& io_mutex;
+   };
+
+void vnc_crack_thread::operator()()
    {
    static const unsigned char bit_flip[256] = {
       0x00, 0x80, 0x40, 0xC0, 0x20, 0xA0, 0x60, 0xE0, 0x10, 0x90, 0x50, 0xD0,
@@ -234,24 +263,20 @@ void attempt_crack(VNC_Auth_Reader& reader, std::istream& wordlist)
       0x0F, 0x8F, 0x4F, 0xCF, 0x2F, 0xAF, 0x6F, 0xEF, 0x1F, 0x9F, 0x5F, 0xDF,
       0x3F, 0xBF, 0x7F, 0xFF };
 
-   std::map<std::string, std::string> challenge_to_id;
-   std::map<std::pair<std::string, std::string>, std::string> solutions;
-
-   std::string id, challenge, response;
-   while(reader.find_next(id, challenge, response))
-      {
-      solutions[std::make_pair(challenge, response)] = "";
-      challenge_to_id[challenge] = id;
-      }
-
-   std::string password;
    Botan::DES des;
    unsigned char encrypted_challenge[16] = { 0 };
    size_t attempts = 0;
 
-   while(wordlist.good())
+   std::string password;
+
+   while(true)
       {
-      std::getline(wordlist, password);
+         {
+         boost::mutex::scoped_lock lock(io_mutex);
+         if(!wordlist.good())
+            break;
+         std::getline(wordlist, password);
+         }
 
       ++attempts;
 
@@ -280,8 +305,14 @@ void attempt_crack(VNC_Auth_Reader& reader, std::istream& wordlist)
 
             if(std::memcmp(encrypted_challenge, &response[0], 16) == 0)
                {
+               std::string id = "<unknown>";
+
+               std::map<std::string, std::string>::const_iterator id_iter = challenge_to_id.find(challenge);
+               if(id_iter != challenge_to_id.end())
+                  id = id_iter->second;
+
                std::cout << "Solved: Password '" << password << "' used "
-                         << challenge_to_id[challenge] << " after " << attempts << " attempts\n";
+                         << id << " after " << attempts << " attempts\n";
                i->second = password;
                }
             }
@@ -289,30 +320,57 @@ void attempt_crack(VNC_Auth_Reader& reader, std::istream& wordlist)
       }
    }
 
+void attempt_crack(VNC_Auth_Reader& reader, std::istream& wordlist, int thread_count)
+   {
+   std::map<std::string, std::string> challenge_to_id;
+   std::map<std::pair<std::string, std::string>, std::string> solutions;
+
+   std::string id, challenge, response;
+   while(reader.find_next(id, challenge, response))
+      {
+      solutions[std::make_pair(challenge, response)] = "";
+      challenge_to_id[challenge] = id;
+      }
+
+   boost::thread_group threads;
+   boost::mutex wordlist_mutex, solutions_mutex;
+
+   for(int j = 0; j != thread_count; ++j)
+      threads.create_thread(vnc_crack_thread(wordlist, solutions, challenge_to_id,
+                                             wordlist_mutex, solutions_mutex));
+
+   threads.join_all();
+   }
+
 int main(int argc, char* argv[])
    {
    try
       {
-      if(argc != 3)
+      if(argc != 3 && argc != 4)
          {
          std::cerr << "VNCcrack 2.1 (http://www.randombit.net/code/vnccrack/)\n"
-                   << "Usage: " << argv[0] << " <pcapfile> <wordlist>\n";
+                   << "Usage: " << argv[0] << " <pcapfile> <wordlist> (<threads>)\n";
          return 1;
          }
 
-      Botan::LibraryInitializer init;
+      Botan::LibraryInitializer init("thread_safe");
 
       VNC_Auth_Reader reader(argv[1]);
       std::string wordlist_file = argv[2];
 
+      int threads = 1;
+
+      if(argv[3] != 0)
+         threads = atoi(argv[3]);
+
       if(wordlist_file == "-")
          {
-         attempt_crack(reader, std::cin);
+         attempt_crack(reader, std::cin, threads);
          }
       else
          {
          std::ifstream in(wordlist_file.c_str());
-         attempt_crack(reader, in);
+         attempt_crack(reader, in, threads);
          }
       }
    catch(std::exception& e)
