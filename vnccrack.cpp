@@ -214,13 +214,11 @@ class vnc_crack_thread
    {
    public:
       vnc_crack_thread(std::istream& wrd,
-                       std::map<std::pair<std::string, std::string>, std::string>& solutions_ref,
+                       const std::map<std::pair<std::string, std::string>, std::string>& solutions_ref,
                        const std::map<std::string, std::string>& chal_to_id,
-                       boost::mutex& wordlist_mux,
-                       boost::mutex& solutions_mux) :
+                       boost::mutex& wordlist_mux) :
          challenge_to_id(chal_to_id),
          solutions(solutions_ref),
-         solutions_mutex(solutions_mux),
          wordlist(wrd),
          io_mutex(wordlist_mux)
          {}
@@ -230,8 +228,7 @@ class vnc_crack_thread
    private:
       const std::map<std::string, std::string>& challenge_to_id;
 
-      std::map<std::pair<std::string, std::string>, std::string>& solutions;
-      boost::mutex& solutions_mutex;
+      std::map<std::pair<std::string, std::string>, std::string> solutions;
 
       std::istream& wordlist;
       boost::mutex& io_mutex;
@@ -267,53 +264,95 @@ void vnc_crack_thread::operator()()
    unsigned char encrypted_challenge[16] = { 0 };
    size_t attempts = 0;
 
-   std::string password;
+   std::vector<char> read_buf(256 * 1024);
 
    while(true)
       {
          {
+         printf("Trying to lock for i/o %d\n", pthread_self());
+         fflush(stdout);
+
          boost::mutex::scoped_lock lock(io_mutex);
-         if(!wordlist.good())
+
+         printf("Got it in %d\n", pthread_self());
+         fflush(stdout);
+
+         wordlist.get(&read_buf[0], read_buf.size());
+         size_t got = wordlist.gcount();
+
+         if(got == 0) // done!
+            {
+            std::cout << "Thread exiting after " << attempts << " attempts\n";
             break;
-         std::getline(wordlist, password);
+            }
+
+         if(read_buf[read_buf.size()-1] != '\n')
+            {
+            char c = 0;
+            while(wordlist.good() && c != '\n')
+               {
+               wordlist.get(c);
+               read_buf.push_back(c);
+               }
+            read_buf.push_back('\n');
+            }
          }
 
-      ++attempts;
-
-      // Truncate to 8 bytes (maximum supported by VNC)
-      unsigned char pass_buf[8] = { 0 };
-      for(std::size_t j = 0; j != password.length() && j != 8; j++)
-         pass_buf[j] = bit_flip[(unsigned char)password[j]];
-
-      des.set_key(pass_buf, sizeof(pass_buf));
-
-      // for(auto i : unsolved)
-      for(std::map<std::pair<std::string, std::string>, std::string>::iterator i = solutions.begin();
-          i != solutions.end(); ++i)
+      size_t offset = 0;
+      while(true)
          {
-         if(!i->second.empty())
-            continue; // already solved
+         if(offset == read_buf.size())
+            break; // done with this block
 
-         const std::string challenge = i->first.first;
-         const std::string response = i->first.second;
+         std::string password;
 
-         des.encrypt((const Botan::byte*)&challenge[0], &encrypted_challenge[0]);
-
-         if(std::memcmp(encrypted_challenge, &response[0], 8) == 0)
+         while(offset != read_buf.size() && read_buf[offset] != '\n')
             {
-            des.encrypt((const Botan::byte*)&challenge[8], &encrypted_challenge[8]);
+            password += read_buf[offset];
+            ++offset;
+            }
+         ++offset;
 
-            if(std::memcmp(encrypted_challenge, &response[0], 16) == 0)
+         printf("Password %d bytes long\n", password.size());
+         ++attempts;
+
+         // Truncate to 8 bytes (maximum supported by VNC)
+         unsigned char pass_buf[8] = { 0 };
+         for(std::size_t j = 0; j != password.length() && j != 8; j++)
+            pass_buf[j] = bit_flip[(unsigned char)password[j]];
+
+         des.set_key(pass_buf, sizeof(pass_buf));
+
+         for(std::map<std::pair<std::string, std::string>, std::string>::iterator i = solutions.begin();
+             i != solutions.end(); ++i)
+            {
+            if(!i->second.empty())
+               continue; // already solved
+
+            const std::string challenge = i->first.first;
+            const std::string response = i->first.second;
+
+            des.encrypt((const Botan::byte*)&challenge[0], &encrypted_challenge[0]);
+
+            if(std::memcmp(encrypted_challenge, &response[0], 8) == 0)
                {
-               std::string id = "<unknown>";
+               des.encrypt((const Botan::byte*)&challenge[8], &encrypted_challenge[8]);
 
-               std::map<std::string, std::string>::const_iterator id_iter = challenge_to_id.find(challenge);
-               if(id_iter != challenge_to_id.end())
-                  id = id_iter->second;
+               if(std::memcmp(encrypted_challenge, &response[0], 16) == 0)
+                  {
+                  std::string id = "<unknown>";
 
-               std::cout << "Solved: Password '" << password << "' used "
-                         << id << " after " << attempts << " attempts\n";
-               i->second = password;
+                  std::map<std::string, std::string>::const_iterator id_iter = challenge_to_id.find(challenge);
+                  if(id_iter != challenge_to_id.end())
+                     id = id_iter->second;
+
+                  i->second = password;
+
+                  io_mutex.lock();
+                  std::cout << "Solved: Password '" << password << "' used "
+                            << id << " after " << attempts << " attempts\n";
+                  io_mutex.unlock();
+                  }
                }
             }
          }
@@ -333,11 +372,12 @@ void attempt_crack(VNC_Auth_Reader& reader, std::istream& wordlist, int thread_c
       }
 
    boost::thread_group threads;
-   boost::mutex wordlist_mutex, solutions_mutex;
+   boost::mutex wordlist_mutex;
 
+   std::cout << "Spawning " << thread_count << " threads\n";
    for(int j = 0; j != thread_count; ++j)
       threads.create_thread(vnc_crack_thread(wordlist, solutions, challenge_to_id,
-                                             wordlist_mutex, solutions_mutex));
+                                             wordlist_mutex));
 
    threads.join_all();
    }
